@@ -1,4 +1,4 @@
-# 📑 מפת קבצים מלאה - File Index
+# 📑 File Index
 
 ## 🗂️ Project Structure
 
@@ -442,5 +442,3 @@ Each file contains:
 **Complete File Index | May 2026**
 
 ---
-
-**הערה: כל קובץ מתוועד כראוי עם הערות בעברית לקל הבנה**

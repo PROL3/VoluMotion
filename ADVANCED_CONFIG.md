@@ -1,60 +1,60 @@
-# ⚙️ הגדרות מתקדמות
+# ⚙️ Advanced Configurations
 
 ## 🎯 Tuning Parameters
 
 ### HandDetector Configuration
 ```kotlin
-// ב-HandDetector.kt
+// In HandDetector.kt
 
-// זה צריך להיות 1 (רק יד אחת בכל פעם)
+// Should be set to 1 (detect only one hand at a time)
 const val MAX_HANDS = 1
 
-// גבוה יותר = עיבוד מהיר אך פחות מדויק
-// נמוך יותר = מדויק אך איטי יותר
+// false: Optimized for video (faster tracking)
+// true: Optimized for individual images (slower but more precise)
 STATIC_IMAGE_MODE = false
 
-// השתמש GPU לעיבוד מהיר
+// Utilize GPU for high-performance processing
 RUN_ON_GPU = true
 ```
 
 ### RotationDetector Tuning
 ```kotlin
-// גודל חלון לחישוב ממוצע
-val bufferSize = 10  // נסה 5-20
+// Window size for moving average calculation
+val bufferSize = 10  // Recommended range: 5-20
 
-// סף confidence מינימלי
-const val CONFIDENCE_THRESHOLD = 0.6f  // 0.5-0.8
+// Minimum confidence threshold for valid detection
+const val CONFIDENCE_THRESHOLD = 0.6f  // Range: 0.5-0.8
 
-// סף זוויה מינימלי (מעלות)
-const val ANGLE_THRESHOLD = 2f  // 1-5 מעלות
+// Minimum rotation angle to trigger an event (degrees)
+const val ANGLE_THRESHOLD = 2f  // Range: 1-5 degrees
 
-// סף ביטחון גדול יותר = פחות false positives
+// Minimum confidence required for the averaged rotation result
 const val AVERAGE_ROTATION_CONFIDENCE = 0.6f
 ```
 
 ### Volume Control Timing
 ```kotlin
-// זמן בין פעולות אפשרויות סיבוב
-const val ROTATION_COOLDOWN = 500L  // 300-1000ms
+// Cooldown period between rotation-triggered actions
+const val ROTATION_COOLDOWN = 500L  // Range: 300-1000ms
 
-// מנוע מ-"flickering" של ווליום
-// יותר זמן = פחות תגובה מהירה
+// Prevents volume "flickering" 
+// Higher values = smoother but less responsive control
 ```
 
 ### Driving Mode Detection
 ```kotlin
-// סף מהירות ל-"נהיגה"
+// Minimum speed to be classified as "Driving"
 const val DRIVING_SPEED_THRESHOLD = 5f  // km/h
 
-// frequency של GPS updates
+// Frequency of GPS updates
 locationManager.requestLocationUpdates(
     LocationManager.GPS_PROVIDER,
-    1000,      // 1000ms בין updates
-    10f,       // 10 meters displacement
+    1000,      // 1000ms interval between updates
+    10f,       // 10 meters minimum displacement
     listener
 )
 
-// מהר יותר updates = צריכת סוללה גדולה יותר
+// Faster updates lead to higher battery consumption
 ```
 
 ## 📊 Performance Metrics
@@ -63,88 +63,75 @@ locationManager.requestLocationUpdates(
 
 ```
 Device: Pixel 5 (Snapdragon 765)
-Screen: 6" FHD+
+Display: 6" FHD+
 
 Hand Detection:    ~30 FPS (33ms per frame)
 Rotation Detection: ~60 FPS (16ms per frame)
 Total Latency:      50-100ms
 CPU Usage:          15-25%
-Memory:             80-120 MB
-Battery Drain:      8-10% per hour (with GPS)
+Memory Footprint:   80-120 MB
+Battery Drain:      8-10% per hour (with active GPS)
 ```
 
 ### Optimization Checklist
 
-- ✅ Use GPU rendering ב-MediaPipe
-- ✅ Limit buffer sizes (10 frames)
-- ✅ Close unused resources
-- ✅ Use back-pressure strategy בـ CameraX
-- ✅ Stop GPS when not driving
-- ✅ Reduce update frequency
+- ✅ Enable **GPU rendering** in MediaPipe.
+- ✅ Limit **buffer sizes** (max 10 frames).
+- ✅ Ensure all unused resources are **closed/released**.
+- ✅ Implement **back-pressure strategy** in CameraX.
+- ✅ Disable **GPS tracking** when not in driving mode.
+- ✅ Optimize **update frequency** based on state.
 
 ## 🔐 Security Best Practices
 
 ### Camera Usage
-```kotlin
-// אל תשמור את הפריימים לדיסק
-// אל תשלח למשרת ללא הצפנה
-// מחק בעבור כל frame שלא צריך
-```
+- **Do not save** raw camera frames to local storage.
+- **Do not transmit** video data to servers without end-to-end encryption.
+- **Immediately discard** processed frames after landmark extraction.
 
 ### Location Privacy
-```kotlin
-// אל תקשר את הלוקציה למצלמה
-// אל תשלח מידע לוקציה ל-3rd parties
-// מחק עבור 1 שעה
-```
+- **Avoid linking** location metadata directly with camera frames.
+- **Do not share** location data with 3rd party providers.
+- **Clear history** periodically (e.g., every 1 hour).
 
 ### Permissions
+- **Always verify** permissions before starting any core service.
 ```kotlin
-// בדוק permissions בכל פעם
 if (!PermissionManager.hasPermission(context, CAMERA)) {
-    // עצור
+    // Gracefully stop the service
 }
 ```
 
-## 🚀 Custom Configurations
+## 🚀 Custom Configuration Profiles
 
 ### Light Driving Mode (Low Power)
-```kotlin
-// - הפעל GPS בלבד
-// - אל תתחיל hand detection
-// - שמור מידי על סוללה
-```
+- Polls GPS only.
+- Does not initiate hand detection until movement is confirmed.
+- Prioritizes battery longevity.
 
 ### Aggressive Mode (High Sensitivity)
-```kotlin
-// - bufferSize = 5 (מהיר יותר)
-// - confidence = 0.4 (רגיש יותר)
-// - cooldown = 300ms (מהיר יותר)
-// ⚠️ יותר false positives
-```
+- `bufferSize = 5` (Faster response).
+- `confidence = 0.4` (More sensitive).
+- `cooldown = 300ms` (Rapid triggers).
+- ⚠️ *Note: Higher risk of false positives.*
 
 ### Conservative Mode (High Stability)
-```kotlin
-// - bufferSize = 20 (יציב יותר)
-// - confidence = 0.8 (בטוח יותר)
-// - cooldown = 1000ms (איטי יותר)
-// ✅ פחות false positives
-```
+- `bufferSize = 20` (Smoother average).
+- `confidence = 0.8` (Highly reliable).
+- `cooldown = 1000ms` (Measured response).
+- ✅ *Note: Minimal false positives.*
 
 ## 📈 Monitoring & Logging
 
 ### Log Levels
-```kotlin
-Log.v() // Verbose - detailed debug info
-Log.d() // Debug - used extensively here
-Log.i() // Info - important events
-Log.w() // Warning - possible problems
-Log.e() // Error - problems
-```
+- `Log.v()`: Verbose - Detailed debugging information.
+- `Log.d()`: Debug - General operational logs.
+- `Log.i()`: Info - Major state changes.
+- `Log.w()`: Warning - Non-critical issues.
+- `Log.e()`: Error - Critical failures.
 
 ### Metrics Collection
 ```kotlin
-// זה יכול להיות מעניין להוסיף
 data class PerformanceMetrics(
     val fps: Float,
     val latency: Long,
@@ -156,22 +143,22 @@ data class PerformanceMetrics(
 
 ## 🔄 Continuous Integration
 
-### Suggested Testing
+### Suggested Testing Frameworks
 ```gradle
 testImplementation 'junit:junit:4.13.2'
 testImplementation 'io.mockk:mockk:1.13.5'
 androidTestImplementation 'androidx.test:runner:1.5.2'
 ```
 
-### Test Cases
-- [ ] Hand detection with different lighting
-- [ ] Rotation detection accuracy
-- [ ] Volume control integration
-- [ ] GPS driving mode detection
-- [ ] Foreground service lifecycle
-- [ ] Permission handling
-- [ ] Memory leaks detection
+### Key Test Cases
+- [ ] Hand detection under varying lighting conditions.
+- [ ] Rotation detection precision and direction accuracy.
+- [ ] Volume control system integration.
+- [ ] GPS-based driving mode entry/exit triggers.
+- [ ] Foreground service lifecycle stability.
+- [ ] Permission denial/revocation handling.
+- [ ] Memory leak detection under long-duration usage.
 
 ---
 
-**מעדכן: May 2026**
+**Last Updated: May 2026**

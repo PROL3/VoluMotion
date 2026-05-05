@@ -1,386 +1,163 @@
-# ❓ שאלות נפוצות (FAQ)
+# ⚙️ Advanced Configurations
 
-## Installation & Setup
+## 🎯 Tuning Parameters
 
-### Q: מה הדרישות מינימליות?
-**A:** 
-- Android 8.0 (API 26) minimum
-- 2GB RAM (4GB recommended)
-- Front-facing camera
-- GPS (optional, for driving mode)
+### HandDetector Configuration
+```kotlin
+// In HandDetector.kt
 
-### Q: איך להתקין את הפרויקט?
-**A:**
-```bash
-git clone <repo-url>
-cd HandGestureVolumeControl
-./gradlew installDebug
-./gradlew runDebug
+// Should be set to 1 (detect only one hand at a time)
+const val MAX_HANDS = 1
+
+// false: Optimized for video (faster tracking)
+// true: Optimized for individual images (slower but more precise)
+STATIC_IMAGE_MODE = false
+
+// Utilize GPU for high-performance processing
+RUN_ON_GPU = true
 ```
 
-### Q: האם זה עובד עם emulator?
-**A:** כן, אך emulator חייב לתמוך ב:
-- Camera (virtual)
-- GPU acceleration
-- GPS simulation
-
-### Q: איזו גרסת Android Studio?
-**A:** Hedgehog (2023.1.1) ומעלה מומלץ
-
----
-
-## Hand Detection Issues
-
-### Q: לא מזהה את היד שלי
-**A:** בדוק:
-1. ✓ תאורה טובה (סביבו 300+ lux)
-2. ✓ יד בתחום של 30-50cm מהמצלמה
-3. ✓ יד בזווית טובה (כף היד פונה למצלמה)
-4. ✓ בדוק ב-Logcat: `adb logcat | grep HandDetector`
-
-### Q: מזהה יד אבל לא מזהה סיבוב
-**A:** סיבות אפשריות:
-- Confidence של hand detection נמוכה (< 0.5)
-- סיבוב מהיר מדי או איטי מדי
-- חלון buffer קטן מדי (bufferSize = 10)
-
-**פתרון:**
+### RotationDetector Tuning
 ```kotlin
-// בַ RotationDetector.kt
-private val bufferSize = 15  // תגדל ל-15-20
-const val CONFIDENCE_THRESHOLD = 0.4f  // הנמך ל-0.4
+// Window size for moving average calculation
+val bufferSize = 10  // Recommended range: 5-20
+
+// Minimum confidence threshold for valid detection
+const val CONFIDENCE_THRESHOLD = 0.6f  // Range: 0.5-0.8
+
+// Minimum rotation angle to trigger an event (degrees)
+const val ANGLE_THRESHOLD = 2f  // Range: 1-5 degrees
+
+// Minimum confidence required for the averaged rotation result
+const val AVERAGE_ROTATION_CONFIDENCE = 0.6f
 ```
 
-### Q: יותר מדי false positives
-**A:** הגדלת את הסף:
+### Volume Control Timing
 ```kotlin
-// בַ RotationDetector.kt
-const val ANGLE_THRESHOLD = 5f  // תגדל מ-2 ל-5
-const val AVERAGE_ROTATION_CONFIDENCE = 0.7f  // תגדל מ-0.6 ל-0.7
+// Cooldown period between rotation-triggered actions
+const val ROTATION_COOLDOWN = 500L  // Range: 300-1000ms
+
+// Prevents volume "flickering" 
+// Higher values = smoother but less responsive control
 ```
 
-### Q: איך להסתכל על frame של היד?
-**A:** הוסף debug code:
+### Driving Mode Detection
 ```kotlin
-// ב-HandGestureService.kt, processImage()
-android.graphics.Canvas.apply {
-    bitmap?.let { 
-        Log.d("DEBUG", "Frame size: ${it.width}x${it.height}")
-        // save frame: FileOutputStream(...).write(...)
-    }
+// Minimum speed to be classified as "Driving"
+const val DRIVING_SPEED_THRESHOLD = 5f  // km/h
+
+// Frequency of GPS updates
+locationManager.requestLocationUpdates(
+    LocationManager.GPS_PROVIDER,
+    1000,      // 1000ms interval between updates
+    10f,       // 10 meters minimum displacement
+    listener
+)
+
+// Faster updates lead to higher battery consumption
+```
+
+## 📊 Performance Metrics
+
+### Expected Performance
+
+```
+Device: Pixel 5 (Snapdragon 765)
+Display: 6" FHD+
+
+Hand Detection:    ~30 FPS (33ms per frame)
+Rotation Detection: ~60 FPS (16ms per frame)
+Total Latency:      50-100ms
+CPU Usage:          15-25%
+Memory Footprint:   80-120 MB
+Battery Drain:      8-10% per hour (with active GPS)
+```
+
+### Optimization Checklist
+
+- ✅ Enable **GPU rendering** in MediaPipe.
+- ✅ Limit **buffer sizes** (max 10 frames).
+- ✅ Ensure all unused resources are **closed/released**.
+- ✅ Implement **back-pressure strategy** in CameraX.
+- ✅ Disable **GPS tracking** when not in driving mode.
+- ✅ Optimize **update frequency** based on state.
+
+## 🔐 Security Best Practices
+
+### Camera Usage
+- **Do not save** raw camera frames to local storage.
+- **Do not transmit** video data to servers without end-to-end encryption.
+- **Immediately discard** processed frames after landmark extraction.
+
+### Location Privacy
+- **Avoid linking** location metadata directly with camera frames.
+- **Do not share** location data with 3rd party providers.
+- **Clear history** periodically (e.g., every 1 hour).
+
+### Permissions
+- **Always verify** permissions before starting any core service.
+```kotlin
+if (!PermissionManager.hasPermission(context, CAMERA)) {
+    // Gracefully stop the service
 }
 ```
 
----
+## 🚀 Custom Configuration Profiles
 
-## Volume Control Issues
+### Light Driving Mode (Low Power)
+- Polls GPS only.
+- Does not initiate hand detection until movement is confirmed.
+- Prioritizes battery longevity.
 
-### Q: הווליום משתנה כל הזמן (fluttering)
-**A:** הגדלת את cooldown:
+### Aggressive Mode (High Sensitivity)
+- `bufferSize = 5` (Faster response).
+- `confidence = 0.4` (More sensitive).
+- `cooldown = 300ms` (Rapid triggers).
+- ⚠️ *Note: Higher risk of false positives.*
+
+### Conservative Mode (High Stability)
+- `bufferSize = 20` (Smoother average).
+- `confidence = 0.8` (Highly reliable).
+- `cooldown = 1000ms` (Measured response).
+- ✅ *Note: Minimal false positives.*
+
+## 📈 Monitoring & Logging
+
+### Log Levels
+- `Log.v()`: Verbose - Detailed debugging information.
+- `Log.d()`: Debug - General operational logs.
+- `Log.i()`: Info - Major state changes.
+- `Log.w()`: Warning - Non-critical issues.
+- `Log.e()`: Error - Critical failures.
+
+### Metrics Collection
 ```kotlin
-// ב-HandGestureService.kt
-private val rotationCooldown = 1000L  // תגדל מ-500ms ל-1000ms
-```
-
-### Q: הווליום לא משתנה
-**A:** בדוק:
-1. ✓ MODIFY_AUDIO_SETTINGS permission
-2. ✓ Ringer mode לא SILENT
-3. ✓ Media stream לא MUTED
-4. ✓ Log output: `adb logcat | grep VolumeController`
-
-### Q: הווליום משתנה מדי לאט
-**A:** הקטן את cooldown:
-```kotlin
-private val rotationCooldown = 300L  // הקטן מ-500ms ל-300ms
-```
-
----
-
-## Service & Background Issues
-
-### Q: Service עוצר לאחר כמה דקות
-**A:** בדוק:
-1. ✓ FOREGROUND_SERVICE permission בـ manifest
-2. ✓ startForeground() נקרא ב-onStartCommand()
-3. ✓ Notification ID מייחד (לא 0)
-
-### Q: Notification לא מופיעה
-**A:** בדוק:
-1. ✓ NotificationChannel נוצר
-2. ✓ IMPORTANCE_LOW או IMPORTANCE_DEFAULT
-3. ✓ android 8.0+ required for channels
-
-### Q: App צורכת סוללה יותר מדי
-**A:** בדוק:
-1. ✓ GPS monitoring פועל כל הזמן
-2. ✓ Hand detection paused כשלא בנהיגה
-3. ✓ Reduce GPS update frequency
-
-**פתרון GPS:**
-```kotlin
-// ב-DrivingModeDetector.kt
-locationManager.requestLocationUpdates(
-    LocationManager.GPS_PROVIDER,
-    2000,  // תגדל מ-1000ms ל-2000ms
-    50f,   // תגדל מ-10m ל-50m
-    listener
+data class PerformanceMetrics(
+    val fps: Float,
+    val latency: Long,
+    val cpuUsage: Float,
+    val memoryUsage: Long,
+    val batteryDrain: Float
 )
 ```
 
----
+## 🔄 Continuous Integration
 
-## Permission Issues
-
-### Q: App asks for permissions but don't work
-**A:** בדוק runtime permissions:
-```kotlin
-// Android 6.0+ requires runtime permissions
-if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-    PermissionManager.requestPermissions(activity)
-}
-```
-
-### Q: Location permission denied
-**A:** בדוק ב-Settings:
-- Settings → Apps → Hand Gesture → Permissions
-- Location must be "Allow only while using the app" or "Allow"
-
-### Q: Camera permission denied
-**A:** האפליקציה לא תעבוד ללא Camera permission
-
----
-
-## Performance Issues
-
-### Q: App frames drop (stuttering)
-**A:** בדוק:
-1. ✓ GPU enabled ב-MediaPipe
-2. ✓ CameraX backpressure = KEEP_ONLY_LATEST
-3. ✓ Single analysis thread
-
-```kotlin
-// ב-HandGestureService.kt
-val imageAnalyzer = ImageAnalysis.Builder()
-    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-    .build()
-```
-
-### Q: Memory leak (app crashes after 1 hour)
-**A:** בדוק:
-1. ✓ Bitmap.recycle() called
-2. ✓ handDetector.release() called
-3. ✓ No global references to Context
-
-### Q: CPU usage too high
-**A:** בדוק:
-1. ✓ Hand detection confidence > 0.5
-2. ✓ Image analysis not processing every frame
-3. ✓ Reduce buffer sizes
-
-```kotlin
-private val bufferSize = 5  // הקטן מ-10 ל-5
-```
-
----
-
-## Driving Mode Detection
-
-### Q: GPS not working
-**A:** בדוק:
-1. ✓ ACCESS_FINE_LOCATION permission
-2. ✓ Location Services enabled
-3. ✓ Device has GPS (or emulator simulating it)
-
-### Q: Driving mode detected even when stationary
-**A:** ייתכן interference מ-Network Location. בדוק:
-```kotlin
-// ב-DrivingModeDetector.kt
-// Remove or increase threshold for NETWORK_PROVIDER
-// Keep only GPS_PROVIDER
-```
-
-### Q: Driving mode never detected
-**A:** אתה צריך:
-1. ✓ Actual speed > 5 km/h
-2. ✓ GPS or Network location active
-3. ✓ Device moving
-
----
-
-## Debugging & Logs
-
-### Q: איך לראות detailed logs?
-**A:**
-```bash
-# All logs from app
-adb logcat | grep "HandGesture"
-
-# Specific component
-adb logcat | grep "HandDetector"
-adb logcat | grep "RotationDetector"
-adb logcat | grep "VolumeController"
-
-# Save to file
-adb logcat > logcat_dump.txt
-```
-
-### Q: איפה ה-Logcat ב-Android Studio?
-**A:** 
-View → Tool Windows → Logcat
-
-### Q: איך להפסיק Logcat spam?
-**A:** בתחתית Logcat, בחר Log Level = "Error" או "Warn"
-
-### Q: איך להגדיר breakpoint?
-**A:**
-1. Click on left margin של שורה בקוד
-2. Dot יופיע
-3. Run → Debug "app"
-4. Code will pause at breakpoint
-
----
-
-## Integration Questions
-
-### Q: איך להשתמש ב-OpenCV instead של MediaPipe?
-**A:** זה דורש שינויים משמעותיים:
-1. Replace HandDetector.kt
-2. Use OpenCV Hand Tracking
-3. More CPU intensive
-4. **Not recommended** - MediaPipe טוב יותר
-
-### Q: איך להוסיף gesture נוסף?
-**A:**
-```kotlin
-// 1. Extend RotationDetector
-class CustomGestureDetector : RotationDetector() {
-    fun detectSwipe(prev: List<PointF>, curr: List<PointF>): SwipeDirection {
-        // implement swipe detection
-    }
-}
-
-// 2. Use in HandGestureService
-val gesture = customDetector.detectSwipe(landmarks, confidence)
-when (gesture) {
-    SwipeDirection.LEFT -> { /* handle */ }
-    SwipeDirection.RIGHT -> { /* handle */ }
-}
-```
-
-### Q: איך להשתמש עם Smartwatch?
-**A:** זה דורש:
-1. Wear OS app
-2. שידור מידע דרך DataLayer API
-3. WearOS specific permissions
-
----
-
-## Security & Privacy
-
-### Q: האפליקציה שומרת frames?
-**A:** לא! כל frame מחוזק בעבורו אחרי עיבוד
-
-### Q: האפליקציה שלחה נתונים?
-**A:** לא! כל הנתונים מעובדים locally
-
-### Q: מה עם הלוקציה?
-**A:** זה משמש רק לזיהוי נהיגה, לא שמור או שלח
-
----
-
-## Build & Compilation
-
-### Q: Gradle build fails with "Unsupported class-file format"
-**A:**
-```bash
-# Make sure Java 11+ is set
-# In Android Studio:
-File → Project Structure → SDK Location → JDK location
-# Set to Java 11 or higher
-```
-
-### Q: Cannot find MediaPipe library
-**A:**
+### Suggested Testing Frameworks
 ```gradle
-// Make sure repository is added in build.gradle
-repositories {
-    google()
-    mavenCentral()
-}
-
-// And dependency is correct
-implementation 'com.google.mediapipe:solution-core:0.10.11'
+testImplementation 'junit:junit:4.13.2'
+testImplementation 'io.mockk:mockk:1.13.5'
+androidTestImplementation 'androidx.test:runner:1.5.2'
 ```
 
-### Q: App won't run on device
-**A:** בדוק:
-1. ✓ Device connected: `adb devices`
-2. ✓ USB debugging enabled
-3. ✓ Minimum SDK >= 26
-
----
-
-## Feature Requests
-
-### Q: איך להוסיף Vibration feedback?
-**A:**
-```kotlin
-val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-vibrator.vibrate(200) // 200ms vibration
-```
-
-### Q: איך להוסיף custom keybindings?
-**A:** זה ידרוש AccessibilityService ו-complex permissions
-
-### Q: איך להוסיף remote control?
-**A:** זה ידרוש Bluetooth integration ו-pairing logic
-
----
-
-## General Support
-
-### Q: במה הפרויקט בנוי?
-**A:**
-- Language: Kotlin
-- Framework: Android (API 26-34)
-- Libraries: MediaPipe, CameraX, AndroidX
-- Build: Gradle 8.0+
-
-### Q: איך לעדכן את הספריות?
-**A:**
-```gradle
-// ב-build.gradle
-implementation 'com.google.mediapipe:solution-core:0.10.11'
-// שנה את הגרסה בסוף
-```
-
-### Q: איך להנמיך את APK size?
-**A:**
-```gradle
-android {
-    buildTypes {
-        release {
-            minifyEnabled true  // Enable ProGuard
-            shrinkResources true
-        }
-    }
-}
-```
-
----
-
-## Still Have Questions?
-
-1. ✓ Check README.md
-2. ✓ Check IMPLEMENTATION_GUIDE.md
-3. ✓ Check Logcat for error messages
-4. ✓ Search GitHub Issues
-5. ✓ Create new issue with:
-   - Device info
-   - Android version
-   - Logcat output
-   - Steps to reproduce
+### Key Test Cases
+- [ ] Hand detection under varying lighting conditions.
+- [ ] Rotation detection precision and direction accuracy.
+- [ ] Volume control system integration.
+- [ ] GPS-based driving mode entry/exit triggers.
+- [ ] Foreground service lifecycle stability.
+- [ ] Permission denial/revocation handling.
+- [ ] Memory leak detection under long-duration usage.
 
 ---
 

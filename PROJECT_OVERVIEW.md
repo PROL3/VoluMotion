@@ -1,367 +1,211 @@
-# 📋 סקירה כוללת של הפרויקט
+# 📚 Detailed Implementation Guide
 
-## 🎯 מטרת הפרויקט
+## 1️⃣ Initial Setup
 
-**Hand Gesture Volume Control** היא אפליקציית Android המאפשרת שליטה בעוצמת השמע דרך תנועות יד טבעיות - ללא צורך בגעה לטלפון, מעולה במיוחד לזמן נהיגה.
-
-### מיקוד משתמש
-- נהגים שרוצים לשלוט בווליום ללא הסחת דעת
-- משתמשים בתנאים שבהם געה לטלפון בלתי אפשרית
-
-### טכנולוגיות עיקריות
-- **MediaPipe**: זיהוי יד בזמן אמת
-- **CameraX**: גישה למצלמה קדמית
-- **Android Location**: זיהוי נהיגה בעזרת GPS
-- **AudioManager**: שליטה בווליום של המערכת
-
----
-
-## 📁 מבנה הפרויקט
-
-```
-HandGestureVolumeControl/
-├── app/
-│   ├── src/main/
-│   │   ├── java/com/example/handgesturevolume/
-│   │   │   ├── core/
-│   │   │   │   ├── HandDetector.kt        📸 זיהוי יד
-│   │   │   │   └── RotationDetector.kt    🔄 זיהוי סיבוב
-│   │   │   ├── service/
-│   │   │   │   └── HandGestureService.kt  🎛️ שירות רקע
-│   │   │   ├── ui/
-│   │   │   │   └── MainActivity.kt        📱 ממשק משתמש
-│   │   │   └── utils/
-│   │   │       ├── VolumeController.kt    🔊 שליטה בווליום
-│   │   │       ├── DrivingModeDetector.kt 🗺️ זיהוי נהיגה
-│   │   │       └── PermissionManager.kt   🔐 הרשאות
-│   │   ├── res/
-│   │   │   ├── layout/
-│   │   │   │   └── activity_main.xml      📋 Layout
-│   │   │   ├── drawable/
-│   │   │   │   ├── rounded_background.xml
-│   │   │   │   └── button_background.xml
-│   │   │   └── values/
-│   │   │       ├── strings.xml
-│   │   │       ├── colors.xml
-│   │   │       └── themes.xml
-│   │   └── AndroidManifest.xml            ⚙️ הצהרה
-│   ├── build.gradle                       📦 Dependencies
-│   └── proguard-rules.pro                 🔒 Obfuscation
-├── gradle/
-│   └── libs.versions.toml                 📌 Version pins
-├── build.gradle                           🔧 Root config
-├── settings.gradle                        📍 Modules
-├── gradle.properties                      ⚡ Performance
-├── gradlew & gradlew.bat                 🏃 Gradle wrapper
-├── README.md                              📖 Overview
-├── SETUP_GUIDE.md                         🚀 Installation
-├── IMPLEMENTATION_GUIDE.md                📚 מדריך מתקדם
-├── CODE_EXAMPLES.md                       🧪 דוגמות קוד
-├── ADVANCED_CONFIG.md                     ⚙️ Tuning
-└── FAQ.md                                 ❓ שאלות נפוצות
-```
-
----
-
-## 🔄 זרימת הנתונים
-
-### תהליך זיהוי סיבוב
-
-```
-┌─────────────────────────┐
-│  Camera Frame (30 FPS)  │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│  HandDetector           │
-│  - 21 Landmarks         │
-│  - Confidence: 0-1      │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│  RotationDetector       │
-│  - Compare Angles       │
-│  - Buffer (10 frames)   │
-│  - Direction detection  │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│  Cooldown Check (500ms) │
-└────────────┬────────────┘
-             │
-         ┌───┴───────┐
-         │           │
-         ▼           ▼
-    ╔─────────╗  ╔─────────╗
-    │ Clockwise   │Counter-CW
-    ║ Volume UP   │Volume DOWN
-    ╚─────────╝  ╚─────────╝
-```
-
-### זרימת זיהוי נהיגה
-
-```
-┌─────────────────────────┐
-│  GPS Location Updates   │
-│  (every 1 second)       │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│  Speed Calculation      │
-│  > 5 km/h = Driving     │
-└────────────┬────────────┘
-             │
-         ┌───┴──────────┐
-         │              │
-         ▼              ▼
-    ╔──────────╗  ╔───────────╗
-    │ Driving  │  │Not Driving
-    ║ = Active │  │ = Paused
-    ╚──────────╝  ╚───────────╝
-```
-
----
-
-## 🎮 חיק המשחק
-
-### 1. User Launches App
-```
-MainActivity → Check Permissions
-            → Display UI
-            → Wait for Toggle
-```
-
-### 2. User Toggles ON
-```
-toggleSwitch.setOnCheckedChangeListener()
-    → startForegroundService()
-    → HandGestureService.onCreate()
-    → HandGestureService.onStartCommand()
-    → startForeground() + Notification
-    → startHandDetection()
-```
-
-### 3. Hand Detection Loop
-```
-CameraX ImageAnalyzer (30 FPS)
-    → processImage() per frame
-    → HandDetector.detectHand()
-    → RotationDetector.detectRotation()
-    → Check confidence & cooldown
-    → VolumeController.volumeUp() or Down()
-    → Toast message
-```
-
-### 4. Driving Mode Detection
-```
-GPS Location Updates (1 Hz)
-    → DrivingModeDetector.onLocationChanged()
-    → Calculate speed
-    → Notify listeners if changed
-    → Pause/Resume hand detection
-```
-
-### 5. User Toggles OFF
-```
-toggleSwitch.setOnCheckedChangeListener()
-    → stopService()
-    → HandGestureService.onDestroy()
-    → stopHandDetection()
-    → Release resources
-```
-
----
-
-## ⚙️ קומפוננטים ותפקידם
-
-| Component | תפקיד | Input | Output |
-|-----------|-------|-------|--------|
-| **HandDetector** | זיהוי נקודות יד | Bitmap | 21 Landmarks + Confidence |
-| **RotationDetector** | זיהוי כיוון סיבוב | Landmarks Array | Rotation Direction + Angle |
-| **VolumeController** | שליטה בווליום | Direction (UP/DOWN) | System volume change |
-| **DrivingModeDetector** | זיהוי נהיגה | GPS Location | isDriving: Boolean |
-| **HandGestureService** | תיאום עיקרי | Camera frames | Orchestrates all |
-| **MainActivity** | ממשק משתמש | User actions | Service start/stop |
-
----
-
-## 📊 דרישות ביצועים
-
-### Target Devices
-- **Min SDK**: 26 (Android 8.0)
-- **Target SDK**: 34 (Android 14)
-- **Recommended**: Android 12+
-
-### Performance Goals
-| Metric | Target | Reality |
-|--------|--------|---------|
-| Hand Detection FPS | 30+ | 30-35 FPS |
-| Rotation Detection | Real-time | 16-33ms latency |
-| Volume Response | <100ms | 50-100ms |
-| Memory Usage | <150MB | 80-120MB |
-| Battery (GPS active) | <15%/hour | 8-12%/hour |
-
----
-
-## 🔐 הרשאות
-
-```
-1. CAMERA
-   ├─ Permission: android.permission.CAMERA
-   ├─ Risk Level: Dangerous
-   └─ Why: גישה למצלמה הקדמית
-
-2. LOCATION (GPS)
-   ├─ Permission: android.permission.ACCESS_FINE_LOCATION
-   ├─ Risk Level: Dangerous
-   └─ Why: זיהוי נהיגה בעזרת GPS
-
-3. FOREGROUND_SERVICE
-   ├─ Permission: android.permission.FOREGROUND_SERVICE
-   ├─ Risk Level: Normal
-   └─ Why: עבודה בעבודת רקע עם Notification
-
-4. ACCESS_NOTIFICATION_POLICY
-   ├─ Permission: android.permission.ACCESS_NOTIFICATION_POLICY
-   ├─ Risk Level: Normal
-   └─ Why: שליטה בווליום
-```
-
----
-
-## 📈 אפשרויות הרחבה
-
-### שלב 1 (בנוכחי)
-- ✅ זיהוי סיבוב יד
-- ✅ שליטה בווליום
-- ✅ זיהוי נהיגה
-- ✅ Foreground Service
-
-### שלב 2 (עתיד אפשרי)
-- [ ] זיהוי ג'סטורים נוספים (Swipe, Pinch)
-- [ ] Vibration feedback
-- [ ] Machine Learning לזיהוי מדויק יותר
-- [ ] תרגום למקומות אחרים
-- [ ] Custom gesture mapping
-
-### שלב 3 (ארוך טווח)
-- [ ] Integration עם Wear OS
-- [ ] Cloud sync של הגדרות
-- [ ] AI-based activity recognition
-- [ ] Multi-hand support
-- [ ] Gesture recording & playback
-
----
-
-## 🧪 בדיקה ו-QA
-
-### Unit Tests
-```kotlin
-testImplementation 'junit:junit:4.13.2'
-testImplementation 'io.mockk:mockk:1.13.5'
-```
-
-### Android Tests
-```kotlin
-androidTestImplementation 'androidx.test:runner:1.5.2'
-androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
-```
-
-### Manual Testing Checklist
-- [ ] Hand detection with different hand sizes
-- [ ] Rotation detection accuracy (CW/CCW)
-- [ ] Volume up/down works correctly
-- [ ] GPS driving mode detection
-- [ ] Foreground service persistence
-- [ ] Notification updates correctly
-- [ ] Battery drain acceptable
-- [ ] No crashes or ANRs
-
----
-
-## 📚 Documentation Files
-
-| File | Tarbut | Size |
-|------|---------|------|
-| README.md | Overview & features | 5KB |
-| SETUP_GUIDE.md | Step-by-step installation | 8KB |
-| IMPLEMENTATION_GUIDE.md | מדריך טכני מתקדם | 12KB |
-| CODE_EXAMPLES.md | דוגמות קוד | 10KB |
-| ADVANCED_CONFIG.md | Tuning & optimization | 6KB |
-| FAQ.md | שאלות נפוצות | 7KB |
-| **Total** | | ~50KB |
-
----
-
-## 🚀 Quick Start
-
+### Cloning the Project
 ```bash
-# 1. Clone
-git clone <repo-url>
-cd HandGestureVolumeControl
+# Clone or download the project
+git clone https://github.com/PROL3/VoluMotion
+cd VoluMotion
 
-# 2. Build
-./gradlew build
+# Open in Android Studio
+# File → Open → Select the project folder
+```
 
-# 3. Install
-./gradlew installDebug
+### Development Environment Checklist
+```
+✓ Android Studio Hedgehog+
+✓ SDK 34 installed
+✓ NDK (Required for CameraX and MediaPipe)
+✓ Latest Kotlin Plugin
+✓ Physical device or emulator with Android 8.0+
+```
 
-# 4. Run
-./gradlew runDebug
+## 2️⃣ Core Dependencies
 
-# 5. Check Logs
-adb logcat | grep HandGestureService
+### MediaPipe
+MediaPipe is a Google framework providing optimized models for hand tracking.
+
+
+**Current Stable Versions:**
+```gradle
+implementation 'com.google.mediapipe:solution-core:0.10.11'
+implementation 'com.google.mediapipe:tasks-vision:0.10.11'
+```
+
+**Key Responsibilities:**
+- Detects 21 hand landmarks.
+- Processes each camera frame in real-time.
+- Provides a confidence score for each detection.
+
+### CameraX
+Part of Android Jetpack, CameraX simplifies real-time camera access.
+```gradle
+implementation 'androidx.camera:camera-core:1.2.3'
+implementation 'androidx.camera:camera-lifecycle:1.2.3'
+```
+
+### Lifecycle Service
+Essential for background processing using a Foreground Service.
+```gradle
+implementation 'androidx.lifecycle:lifecycle-service:2.6.1'
 ```
 
 ---
 
-## ❓ שאלות נפוצות
+## 3️⃣ Hand Tracking - HandDetector
 
-**Q: למה MediaPipe ולא OpenCV?**
-A: MediaPipe זה כבר מותאם לנייד, GPU-accelerated, ופחות משאבים.
+### Workflow
+```kotlin
+// 1. Initialization (within Service onCreate)
+val handDetector = HandDetector(context)
 
-**Q: אפשר להשתמש בעדשה אחורית?**
-A: כן, שנה ל-BACK_CAMERA בשירות, אך זה פחות נוח בתוך הרכב.
+// 2. Process each frame
+val handLandmarks = handDetector.detectHand(bitmap)
 
-**Q: אפשר לזהות 2 ידיים בו-זמנית?**
-A: כרגע זה מוגבל ל-1 יד. הרחבה זו דורשת שינויים ב-HandDetector.
+if (handLandmarks != null && handLandmarks.confidence > 0.5f) {
+    // Hand detected in frame!
+    println("Found hand with ${handLandmarks.landmarks.size} points")
+}
 
-**Q: איך להקטין צריכת סוללה?**
-A: הקטן את GPS update frequency, השתמש network provider, או כבה כשלא בנהיגה.
+// 3. Resource Cleanup (within onDestroy)
+handDetector.release()
+```
 
----
+### HandDetector Output Data
+- **Handedness**: "Right" or "Left".
+- **Landmarks**: A list of 21 `PointF` objects representing coordinates.
+- **Confidence**: A float value (e.g., 0.92f).
 
-## 🎓 Learning Resources
+### The 21 Hand Landmarks
 
-- **MediaPipe Docs**: https://mediapipe.dev/
-- **Android CameraX**: https://developer.android.com/training/camerax
-- **Android Services**: https://developer.android.com/guide/components/services
-- **Kotlin Guide**: https://kotlinlang.org/docs/
-
----
-
-## 📝 Version History
-
-- **v1.0** (May 2026): Release ראשוני
-  - Hand detection בעזרת MediaPipe
-  - Rotation detection עם Angle calculation
-  - Volume control integration
-  - Driving mode detection
-  - Foreground Service + Notification
-
----
-
-## 👤 Contact & Support
-
-בעיה? תפוקה?
-- בדוק את FAQ.md
-- קרא את TROUBLESHOOTING בـ README.md
-- בדוק Logcat עבור שגיאות
+- **WRIST** (0)
+- **THUMB**: TIP (4)
+- **INDEX**: TIP (8)
+- **MIDDLE**: TIP (12)
+- **RING**: TIP (16)
+- **PINKY**: TIP (20)
+- *Includes 16 intermediate points for finger joints.*
 
 ---
 
-**גרם ❤️ למשתמשים שרוצים לשלוט בווליום בבטיחות בזמן נהיגה**
+## 4️⃣ Rotation Recognition - RotationDetector
+
+### Mechanics
+The core logic relies on geometric tracking:
+1. **Calculate Angle**: Measure the angle of each finger relative to the palm center.
+2. **Compare Frames**: Track angle changes between consecutive frames.
+3. **Determine Direction**: Consistent change in one direction triggers a **Clockwise** or **Counter-Clockwise** event.
+
+### Angle Calculation Algorithm
+```
+For each landmark point:
+    1. Calculate (dx, dy) = point - palmCenter
+    2. angle = atan2(dy, dx) * 180 / π
+    3. Normalize to 0-360 degrees
+
+Compare angles:
+    angleDiff = currentAngle - previousAngle
+    if angleDiff > 2°: Clockwise rotation
+    if angleDiff < -2°: Counter-clockwise rotation
+```
+
+---
+
+## 5️⃣ Volume Management - VolumeController
+
+### Basic Usage
+```kotlin
+val volumeController = VolumeController(context)
+
+volumeController.volumeUp()    // Increase
+volumeController.volumeDown()  // Decrease
+volumeController.toggleMute()  // Mute/Unmute
+
+val currentLevel = volumeController.getCurrentVolume() // Returns 0-1
+```
+
+### Internal Implementation
+```kotlin
+audioManager.adjustStreamVolume(
+    AudioManager.STREAM_MUSIC,
+    AudioManager.ADJUST_RAISE,  // or ADJUST_LOWER
+    AudioManager.FLAG_SHOW_UI   // Displays the system volume slider
+)
+```
+
+---
+
+## 6️⃣ Driving Mode - DrivingModeDetector
+
+### Logic
+Uses GPS to monitor speed. If speed > 5 km/h, the app assumes the user is driving.
+```kotlin
+val drivingDetector = DrivingModeDetector(context)
+
+drivingDetector.addListener { isDriving ->
+    if (isDriving) {
+        // Resume rotation detection
+    } else {
+        // Pause detection to conserve battery
+    }
+}
+
+drivingDetector.startMonitoring()
+```
+
+---
+
+## 7️⃣ Foreground Service - HandGestureService
+
+### Key Characteristics
+- Runs in the background even if the UI is closed.
+- Displays a persistent notification.
+- Acts as the "Brain" connecting the Camera, MediaPipe, and Volume Controller.
+
+### Service Lifecycle
+1. **onCreate()**: Initialize components.
+2. **onStartCommand()**: Begin detection logic.
+3. **startForeground()**: Display the required persistent notification.
+4. **processImage()**: Loop for frame analysis.
+5. **onDestroy()**: Release camera and detector resources.
+
+---
+
+## 8️⃣ MainActivity - User Interface
+
+| Element | Action |
+|---------|-------|
+| **Master Toggle** | Starts/Stops the `HandGestureService`. |
+| **Pause Button** | Temporarily suspends monitoring. |
+| **Status Text** | Displays "Driving," "Stationary," or "Hand Detected." |
+
+---
+
+## 9️⃣ Troubleshooting & Debugging
+
+### Using Logcat
+```bash
+# Filter logs for specific components
+adb logcat | grep "HandDetector\|RotationDetector\|VolumeController"
+```
+
+### Common Issues & Solutions
+- **No Hand Detection**: Check lighting; ensure the hand is 30-50cm from the camera.
+- **False Positives**: Increase the `confidence` threshold in settings.
+- **Service Crashing**: Verify `CAMERA` and `FOREGROUND_SERVICE` permissions in the Manifest.
+- **High Battery Drain**: Use `NETWORK_PROVIDER` for location or increase the GPS update interval.
+
+---
+
+## 🔜 Next Steps
+
+1. **Build**: Run `./gradlew build`.
+2. **Deploy**: Run `./gradlew installDebug`.
+3. **Permissions**: Grant Camera, Location, and Notification access on the device.
+4. **Test**: Rotate your hand in front of the front-facing camera.
+5. **Tune**: Adjust the rotation `cooldown` and `ANGLE_THRESHOLD` for your specific hardware.
+
+---
+
+**Last Updated: May 2026**

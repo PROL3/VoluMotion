@@ -1,6 +1,3 @@
-יצרתי עבורך את קובץ ה-`README.md` באנגלית, מתורגם ומעוצב בצורה מקצועית התואמת את הסטנדרטים של GitHub.
-
-```markdown
 # 🎙️ Hand Gesture Volume Control
 
 ## 📋 Project Description
@@ -209,4 +206,3 @@ This project integrates Google's MediaPipe solutions. Please refer to the MediaP
 
 ---
 **Created with ❤️ for touchless volume control while driving.**
-```
