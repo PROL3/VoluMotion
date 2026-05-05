@@ -108,22 +108,16 @@ implementation "androidx.appcompat:appcompat:1.6.1"
 
 ### 1. Clone the Project
 ```bash
-git clone <repo-url>
-cd HandGestureVolumeControl
+git clone https://github.com/PROL3/VoluMotion
+cd VoluMotion
 ```
 
-### 2. Build and Install
-```bash
-./gradlew build
-./gradlew installDebug
-```
-
-### 3. Grant Permissions
+### 2. Grant Permissions
 - 📷 Camera
 - 📍 Location
 - 🔔 Notifications
 
-### 4. How to Use
+### 3. How to Use
 1. Open the app and toggle the **Master Switch** to ON.
 2. Position your hand in front of the front camera.
 3. **Rotate Right (CW)**: Volume Up ↑
