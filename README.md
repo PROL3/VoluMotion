@@ -175,6 +175,10 @@ locationManager.requestLocationUpdates(
 - **Memory Management**: Optimized Bitmap recycling and limited landmark buffers.
 - **CameraX Strategy**: Uses `KEEP_ONLY_LATEST` backpressure strategy to prevent lag.
 
+
+## How it works?
+
+![instruction](/assests/instruction.png)
 ## 🐛 Troubleshooting
 
 | Issue | Solution |
