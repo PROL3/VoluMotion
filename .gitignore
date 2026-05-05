@@ -1,0 +1,46 @@
+# Gradle
+.gradle/
+build/
+*.apk
+*.aar
+
+# Android Studio
+.idea/
+.DS_Store
+*.iml
+*.iws
+*.ipr
+local.properties
+.cxx/
+
+# Kotlin
+*.kt.bak
+.kotlintest/
+
+# Build outputs
+app/build/
+*.class
+*.jar
+*.war
+
+# Editor
+.vscode/
+*.swp
+*.swo
+*~
+.vim/
+
+# Logs
+*.log
+logcat.txt
+
+# IDE
+.fleet/
+
+# Testing
+.coverage
+coverage.xml
+
+# MediaPipe cache
+.mediapipe/
+mediapipe/
