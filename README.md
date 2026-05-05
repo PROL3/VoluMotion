@@ -1,77 +1,79 @@
+יצרתי עבורך את קובץ ה-`README.md` באנגלית, מתורגם ומעוצב בצורה מקצועית התואמת את הסטנדרטים של GitHub.
+
+```markdown
 # 🎙️ Hand Gesture Volume Control
 
-## 📋 תיאור הפרויקט
+## 📋 Project Description
 
-אפליקציה Android שמזהה תנועת סיבוב של היד (clockwise/counter-clockwise) דרך מצלמת הטלפון ומשתמשת בכך כדי לשלוט בעוצמת השמע של המערכת - כל זה ללא מגע וגם בזמן נהיגה.
+An Android application that detects hand rotation movements (clockwise/counter-clockwise) via the phone's camera to control system volume. This allows for touch-free operation, specifically designed for safe use while driving.
 
-## ✨ תכונות עיקריות
+## ✨ Key Features
 
-✅ **זיהוי סיבוב יד בזמן אמת**
-- שימוש ב-MediaPipe לזיהוי יד מדויק
-- זהוי סיבוב clockwise/counter-clockwise
-- סינון noise ו-false positives
+✅ **Real-time Hand Rotation Recognition**
+- Powered by **MediaPipe** for high-precision hand tracking.
+- Detects clockwise and counter-clockwise rotation.
+- Noise filtering and false-positive prevention logic.
 
-✅ **שליטה בווליום**
-- עלייה/ירידה בעוצמת השמע
-- תגובה מהירה ויציבה
-- פעולה מהירה (cooldown של 500ms למנוע triggers מופרזות)
+✅ **Volume Control**
+- Seamlessly increases/decreases system audio levels.
+- Stable and responsive feedback.
+- Built-in 500ms cooldown to prevent excessive triggers.
 
-✅ **עבודה ברקע**
-- Foreground Service עם Notification
-- עדכון הודעה דינמי
-- אפשרות Pause/Resume
+✅ **Background Operation**
+- Runs as a **Foreground Service** with a persistent Notification.
+- Dynamic notification updates.
+- Pause/Resume functionality from the UI or notification.
 
-✅ **זיהוי נהיגה**
-- ניטור GPS בזמן אמת
-- הפעלה אוטומטית כאשר מהירות > 5 קמ"ש
-- השהיית ניטור כאשר לא בנסיעה
+✅ **Driving Detection**
+- Real-time GPS monitoring.
+- Automatically activates monitoring when speed exceeds 5 km/h.
+- Pauses monitoring when stationary to save resources.
 
-✅ **ממשק משתמש**
-- UI פשוטה וברורה
-- מידע מלא על הרשאות
-- טוגל הפעלה/כיבוי
-- כפתור Pause/Resume
+✅ **User Interface**
+- Simple and intuitive UI.
+- Comprehensive permission management guide.
+- Master On/Off toggle and Pause/Resume controls.
 
-## 🏗️ ארכיטקטורה
+## 🏗️ Architecture
 
 ```
 ┌─────────────────────────────────────────┐
-│         MainActivity (UI)               │
+│           MainActivity (UI)             │
 ├─────────────────────────────────────────┤
 │                                         │
-│  ┌─────────────────────────────────┐   │
-│  │   HandGestureService            │   │
-│  │   (Foreground Service)          │   │
-│  ├─────────────────────────────────┤   │
-│  │ • CameraX (Image Analysis)      │   │
-│  │ • HandDetector (MediaPipe)      │   │
-│  │ • RotationDetector              │   │
-│  │ • VolumeController              │   │
-│  │ • DrivingModeDetector (GPS)     │   │
-│  └─────────────────────────────────┘   │
+│  ┌─────────────────────────────────┐    │
+│  │      HandGestureService         │    │
+│  │      (Foreground Service)       │    │
+│  ├─────────────────────────────────┤    │
+│  │ • CameraX (Image Analysis)      │    │
+│  │ • HandDetector (MediaPipe)      │    │
+│  │ • RotationDetector              │    │
+│  │ • VolumeController              │    │
+│  │ • DrivingModeDetector (GPS)     │    │
+│  └─────────────────────────────────┘    │
 │                                         │
 └─────────────────────────────────────────┘
 ```
 
-## 📦 קובצי הפרויקט
+## 📦 Project Structure
 
 ### Core Components
-- **HandDetector.kt** - זיהוי יד עם MediaPipe
-- **RotationDetector.kt** - זיהוי סיבוב עם חישובי זוויות
-- **VolumeController.kt** - שליטה בווליום של Android
-- **DrivingModeDetector.kt** - זיהוי נהיגה דרך GPS
+- **HandDetector.kt**: Handles hand landmark detection using MediaPipe.
+- **RotationDetector.kt**: Calculates rotation direction using geometric angle analysis.
+- **VolumeController.kt**: Interfaces with Android's AudioManager.
+- **DrivingModeDetector.kt**: Monitors speed and movement via GPS.
 
 ### UI & Service
-- **MainActivity.kt** - ממשק משתמש ראשי
-- **HandGestureService.kt** - Foreground Service לעבודה ברקע
-- **activity_main.xml** - Layout של ה-Activity
+- **MainActivity.kt**: The main entry point and user interface.
+- **HandGestureService.kt**: Manages background lifecycle and camera analysis.
+- **activity_main.xml**: Application layout definition.
 
 ### Configuration
-- **AndroidManifest.xml** - הצהרות והרשאות
-- **build.gradle** - תלויות והגדרות בנייה
-- **strings.xml** - מחרוזות טקסט
+- **AndroidManifest.xml**: App declarations, services, and permissions.
+- **build.gradle**: Dependencies and build configurations.
+- **strings.xml**: Localization and UI text.
 
-## 🔧 דרישות טכניות
+## 🔧 Technical Requirements
 
 ### Gradle & Build
 ```gradle
@@ -83,182 +85,128 @@ targetSdk 34
 ### Libraries
 ```gradle
 // CameraX - for camera access
-androidx.camera:camera-core
-androidx.camera:camera-lifecycle
+implementation "androidx.camera:camera-core:1.3.0"
+implementation "androidx.camera:camera-lifecycle:1.3.0"
 
 // MediaPipe - for hand detection
-com.google.mediapipe:solution-core
-com.google.mediapipe:tasks-vision
+implementation "com.google.mediapipe:solution-core:latest_version"
+implementation "com.google.mediapipe:tasks-vision:latest_version"
 
 // Android & Lifecycle
-androidx.lifecycle:lifecycle-service
-androidx.appcompat:appcompat
+implementation "androidx.lifecycle:lifecycle-service:2.6.1"
+implementation "androidx.appcompat:appcompat:1.6.1"
 ```
 
-## 📱 הרשאות נדרשות
+## 📱 Required Permissions
 
-| הרשאה | מטרה |
-|------|------|
-| `CAMERA` | גישה למצלמה הקדמית |
-| `ACCESS_FINE_LOCATION` | זיהוי נהיגה דרך GPS |
-| `ACCESS_COARSE_LOCATION` | fallback ל-network location |
-| `FOREGROUND_SERVICE` | עבודה ברקע עם Notification |
-| `ACCESS_NOTIFICATION_POLICY` | שליטה בווליום |
+| Permission | Purpose |
+|------------|---------|
+| `CAMERA` | Accessing the front camera for gesture recognition. |
+| `ACCESS_FINE_LOCATION` | Accurate speed detection for Driving Mode. |
+| `ACCESS_COARSE_LOCATION` | Fallback for network-based location. |
+| `FOREGROUND_SERVICE` | Keeping the app active in the background. |
+| `ACCESS_NOTIFICATION_POLICY` | System-level volume adjustment permissions. |
 
-## 🚀 איך להשתמש
+## 🚀 Getting Started
 
-### 1. התקן את הפרויקט
+### 1. Clone the Project
 ```bash
 git clone <repo-url>
 cd HandGestureVolumeControl
 ```
 
-### 2. בנה וקום את האפליקציה
+### 2. Build and Install
 ```bash
 ./gradlew build
 ./gradlew installDebug
 ```
 
-### 3. אשר הרשאות בטלפון
+### 3. Grant Permissions
 - 📷 Camera
 - 📍 Location
-- 🔔 Notification
+- 🔔 Notifications
 
-### 4. הפעל את האפליקציה
-- לחץ על Switch כדי להפעיל
-- התחל לסובב את יד לפני המצלמה
-- סיבוב ימינה (CW) = עוצמה ↑
-- סיבוב שמאלה (CCW) = עוצמה ↓
+### 4. How to Use
+1. Open the app and toggle the **Master Switch** to ON.
+2. Position your hand in front of the front camera.
+3. **Rotate Right (CW)**: Volume Up ↑
+4. **Rotate Left (CCW)**: Volume Down ↓
 
-## 🔍 איך פועל זיהוי הסיבוב
+## 🔍 How the Rotation Detection Works
 
-### שלב 1: זיהוי יד
-```
-Image from Camera → MediaPipe → 21 Landmarks
-```
+### Step 1: Hand Tracking
+`Camera Stream → MediaPipe → 21 Hand Landmarks`
 
-### שלב 2: חישוב זוויות
-```
-Landmarks → Calculate angle of each finger around palm center
-```
+### Step 2: Angle Calculation
+`Landmarks → Calculate relative angles of fingers around the palm center.`
 
-### שלב 3: זיהוי סיבוב
-```
-Previous Angles - Current Angles = Rotation Direction & Speed
-```
+### Step 3: Direction Analysis
+`Compare Previous Angles vs. Current Angles → Determine Direction & Speed.`
 
-### שלב 4: סינון
-```
-Apply motion buffer (10 frames)
-Check confidence > 0.6
-Apply cooldown (500ms)
-```
+### Step 4: Filtering & Smoothing
+- **Motion Buffer**: Analyzes a 10-frame window.
+- **Confidence**: Requires a minimum threshold of 0.6.
+- **Cooldown**: 500ms delay between actions to ensure stability.
 
-## ⚙️ הגדרות וטיונים
+## ⚙️ Configuration & Tuning
 
-### זיהוי Rotation
+### Rotation Logic (`RotationDetector.kt`)
 ```kotlin
-// ב-RotationDetector.kt
-private val bufferSize = 10 // גודל חלון לחישוב ממוצע
-private const val threshold = 2f // מינימום מעלות לזיהוי סיבוב
+private val bufferSize = 10 // Window size for average calculation
+private const val threshold = 2f // Minimum degrees to trigger rotation
 ```
 
-### Cooldown בין פעולות
+### Action Cooldown (`HandGestureService.kt`)
 ```kotlin
-// ב-HandGestureService.kt
-private val rotationCooldown = 500L // 500ms בין פעולות
+private val rotationCooldown = 500L // Delay in milliseconds between volume steps
 ```
 
-### GPS Monitoring
+### GPS Monitoring (`DrivingModeDetector.kt`)
 ```kotlin
-// ב-DrivingModeDetector.kt
 locationManager.requestLocationUpdates(
     LocationManager.GPS_PROVIDER,
-    1000, // 1 שנייה
-    10f, // 10 מטרים
+    1000, // 1 second interval
+    10f,  // 10 meters distance interval
     locationListener
 )
 ```
 
-## 🎯 אופטימיזציה לביצועים
+## 🎯 Performance Optimization
 
-### צריכת CPU
-- ✅ ImageAnalysis יחיד (לא יותר)
-- ✅ GPU processing ב-MediaPipe
-- ✅ Cooldown למנוע continuous processing
-
-### צריכת סוללה
-- ✅ Foreground Service עם LOW importance
-- ✅ GPS location updates כל 1-2 שניות
-- ✅ CameraX backpressure strategy = KEEP_ONLY_LATEST
-
-### זיכרון
-- ✅ Bitmap recycling
-- ✅ Limited hand landmarks buffer
-- ✅ Single CameraX analyzer thread
+- **CPU Efficiency**: Single `ImageAnalysis` pipeline with GPU acceleration via MediaPipe.
+- **Battery Conservation**: Uses a `LOW` importance Foreground Service and smart GPS polling intervals.
+- **Memory Management**: Optimized Bitmap recycling and limited landmark buffers.
+- **CameraX Strategy**: Uses `KEEP_ONLY_LATEST` backpressure strategy to prevent lag.
 
 ## 🐛 Troubleshooting
 
-### בעיה: לא זיהוי יד
-**פתרון:**
-- בדוק תאורה (צריך אור טוב)
-- הצב את הטלפון במרחק 30-50 ס"מ
-- בדוק שהמצלמה זה קדמית (FRONT_CAMERA)
-
-### בעיה: false positives רבים
-**פתרון:**
-- הגבר את `bufferSize` ל-15-20
-- הגבר את `confidence` threshold
-- הגדל את `rotationCooldown` ל-800-1000ms
-
-### בעיה: Service לא עובד ברקע
-**פתרון:**
-- בדוק הרשאות (בעיקר CAMERA ו-FOREGROUND_SERVICE)
-- בדוק שה-device SDK >= 26
-- בדוק logs ב-Logcat
-
-### בעיה: Battery drain גבוה
-**פתרון:**
-- כבה את GPS כאשר לא בנהיגה
-- הגדל את `minTime` ב-GPS requestLocationUpdates
-- השתמש בNETWORK_PROVIDER במקום GPS
+| Issue | Solution |
+|-------|----------|
+| **Hand not detected** | Ensure adequate lighting and distance (30-50 cm from camera). |
+| **Too many false positives** | Increase `bufferSize` (e.g., to 20) or increase the `threshold`. |
+| **Service stops in background** | Check battery optimization settings and ensure `FOREGROUND_SERVICE` permission is granted. |
+| **High battery drain** | Ensure GPS is set to "While using app" or increase `minTime` in GPS updates. |
 
 ## 📊 Logging
 
-כל ה-components משתמשים בـ Log.d:
-```kotlin
-Log.d("HandDetector", "Hand detected with confidence: $confidence")
-Log.d("RotationDetector", "Rotation detected: $direction")
-Log.d("VolumeController", "Volume changed")
-Log.d("DrivingMode", "Driving state: $isDriving")
-```
-
-**לראות logs:**
+Monitor the app's behavior via Logcat:
 ```bash
 adb logcat | grep -E "HandDetector|RotationDetector|VolumeController|DrivingMode"
 ```
 
-## 📈 אפשרויות הרחבה עתידיות
+## 📈 Future Roadmap
 
-- [ ] זיהוי ג'סצ'ר יד נוסף (swipe, pinch)
-- [ ] הוספת vibration feedback
-- [ ] תרגום עברית של טקסטים
-- [ ] תמיכה ביד שמאל וימין באותו זמן
-- [ ] הוספת ML-based gesture recognition
-- [ ] אפשרות custom keybindings
-- [ ] ניתוח ביצועים בזמן אמת
+- [ ] Add support for additional gestures (Swipe, Pinch).
+- [ ] Implement haptic/vibration feedback.
+- [ ] Multilingual support (Hebrew, Spanish, etc.).
+- [ ] Simultaneous left and right-hand support.
+- [ ] ML-based custom gesture training.
+- [ ] Customizable keybindings (e.g., Skip Track).
 
 ## 📄 License
 
-This project is based on the Hand Tracking Using OpenCV repository and includes MediaPipe integration.
-
-## 📝 הערות חשובות
-
-1. **כל ההקוד בעברית** - קוד, קוראים, לוגים
-2. **No OpenCV** - משתמש ב-MediaPipe לביצועים טובים יותר
-3. **Android 8.0+** - חובה עבור Foreground Services
-4. **Front Camera** - משתמש רק במצלמה הקדמית
+This project integrates Google's MediaPipe solutions. Please refer to the MediaPipe license for core vision task usage.
 
 ---
-
-**נוצר עם ❤️ לשליטה ידנית בווליום בזמן נהיגה**
+**Created with ❤️ for touchless volume control while driving.**
+```

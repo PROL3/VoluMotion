@@ -1,169 +1,151 @@
-# 🔧 גיד התקנה מלא Step-by-Step
+# 🔧 Full Installation Guide: Step-by-Step
 
-## שלב 1: הורדה והגדרה
+## Step 1: Download and Setup
 
-### 1.1 Clone הפרויקט
+### 1.1 Clone the Project
+Open your terminal and run the following commands:
 ```bash
 cd ~/Desktop
-git clone https://github.com/your-repo/HandGestureVolumeControl.git
-cd HandGestureVolumeControl
+git clone https://github.com/PROL3/VoluMotion.git
+cd VoluMotion
 ```
 
-### 1.2 בדוק Android Studio
-- Open Android Studio
-- File → Open → בחר תיקיה
+### 1.2 Android Studio Configuration
+1.  Open **Android Studio**.
+2.  Go to **File** → **Open**.
+3.  Select the `VoluMotion` folder.
 
-## שלב 2: Sync Gradle
+---
 
-Android Studio יבקש בך לסנכרן את Gradle.
+## Step 2: Build & Sync (Manual Workflow)
 
-```bash
-# או ידנית
-./gradlew sync
-```
+**Note:** Standard IDE "Sync" or "Run" buttons may fail in this environment. You must use the terminal for the initial build and deployment.
 
-## שלב 3: בדוק Dependencies
-
-```bash
-# רא את dependency tree
-./gradlew dependencies
-
-# צריך לראות:
-# ✓ MediaPipe (hand detection)
-# ✓ CameraX (camera access)
-# ✓ AndroidX (lifecycle, services)
-# ✓ Kotlin (language)
-```
-
-## שלב 4: בחר Device/Emulator
-
-### עם Device
-```bash
-# חבר via USB
-adb devices
-
-# אם צריך ADB
-adb tcpip 5555
-adb connect <device-ip>:5555
-```
-
-### עם Emulator
-- הפעל emulator עם Android 8.0+ (API 26+)
-- אפשר כמו "Google Play" system image
-
-## שלב 5: בנה את הפרויקט
-
-```bash
-# Debug build
-./gradlew buildDebug
-
-# או מ-Android Studio
-Build → Make Project
-```
-
-## שלב 6: התקן על Device
-
-```bash
-# Install
-./gradlew installDebug
-
-# או
-adb install app/build/outputs/apk/debug/app-debug.apk
-```
-
-## שלב 7: הרץ את האפליקציה
-
-```bash
-# Launch
-./gradlew runDebug
-
-# או
-adb shell am start -n com.example.handgesturevolume/.ui.MainActivity
-```
-
-## שלב 8: אשר Permissions
-
-בטלפון:
-1. Settings → Apps → Hand Gesture Volume Control
-2. Permissions:
-   - ✓ Camera: Allow
-   - ✓ Location: Allow (for driving mode)
-   - ✓ Notifications: Allow
-
-## שלב 9: בדוק פעולה
-
-```
-1. Open app
-2. Toggle switch ON
-3. Point hand at camera
-4. Rotate hand clockwise → Volume should UP
-5. Rotate hand counter-clockwise → Volume should DOWN
-```
-
-## שלב 10: Debug עם Logcat
-
-```bash
-# ראה logs בזמן אמת
-adb logcat | grep "HandGestureService\|HandDetector\|Rotation"
-
-# או מ-Android Studio
-View → Tool Windows → Logcat
+### 2.1 Build the Project
+Run the Gradle wrapper from the project root:
+```powershell
+.\gradlew.bat :app:assembleDebug
 ```
 
 ---
 
-## ✅ Checklist סיום
+## Step 3: Verify Dependencies
 
-- [ ] Project builds with no errors
-- [ ] All dependencies downloaded
-- [ ] App installs successfully
-- [ ] All permissions granted
-- [ ] Hand detection works
-- [ ] Rotation detection works
-- [ ] Volume changes when rotating
-- [ ] Foreground notification shows
-- [ ] Logs appear in Logcat
+To ensure all libraries are correctly resolved, check the dependency tree:
+```bash
+./gradlew dependencies
+```
+
+**Required components should include:**
+*   ✓ **MediaPipe:** Hand detection and tracking.
+*   ✓ **CameraX:** Camera access and preview.
+*   ✓ **AndroidX:** Lifecycle management and background services.
+*   ✓ **Kotlin:** Core programming language.
+
+---
+
+## Step 4: Device/Emulator Setup
+
+### Using a Physical Device
+1.  Connect your device via USB.
+2.  Enable **USB Debugging** in Developer Options.
+3.  Verify connection:
+```bash
+adb devices
+```
+
+### Using an Emulator
+1.  Launch an emulator with **Android 8.0+ (API 26+)**.
+2.  Ensure you are using a **Google Play** system image.
+
+---
+
+## Step 5: Install to Device
+
+Install the generated APK to your target device (Serial: `R5CW612ZHAX`):
+
+```powershell
+& "C:\Users\user\AppData\Local\Android\Sdk\platform-tools\adb.exe" -s R5CW612ZHAX install -r "app\build\outputs\apk\debug\app-debug.apk"
+```
+
+---
+
+## Step 6: Launch the Application
+
+Use the following commands to force-stop any existing instance and launch the `MainActivity`:
+
+```powershell
+& "C:\Users\user\AppData\Local\Android\Sdk\platform-tools\adb.exe" -s R5CW612ZHAX shell am force-stop com.example.handgesturevolume; 
+& "C:\Users\user\AppData\Local\Android\Sdk\platform-tools\adb.exe" -s R5CW612ZHAX shell am start -n com.example.handgesturevolume/.ui.MainActivity
+```
+
+---
+
+## Step 7: Grant Permissions
+
+On the target device, ensure the following permissions are granted:
+1.  Navigate to **Settings** → **Apps** → **Hand Gesture Volume Control**.
+2.  Enable **Permissions**:
+    *   ✓ **Camera:** Required for gesture tracking.
+    *   ✓ **Location:** Required for driving mode context.
+    *   ✓ **Notifications:** Required for the background service listener.
+
+---
+
+## Step 8: Operation & Testing
+
+1.  Open the application.
+2.  Toggle the main switch to **ON**.
+3.  Position your hand in front of the camera.
+4.  **Rotate hand clockwise:** Volume should increase (**UP**).
+5.  **Rotate hand counter-clockwise:** Volume should decrease (**DOWN**).
+
+---
+
+## Step 9: Debugging with Logcat
+
+Monitor real-time logs to verify detection and service status:
+```bash
+adb logcat | grep "HandGestureService\|HandDetector\|Rotation"
+```
+*Alternatively, in Android Studio: **View** → **Tool Windows** → **Logcat**.*
+
+---
+
+## ✅ Final Checklist
+
+- [ ] Project builds without errors.
+- [ ] All dependencies are successfully downloaded.
+- [ ] Application installs on the device.
+- [ ] All system permissions are granted.
+- [ ] Hand detection is active.
+- [ ] Rotation logic triggers volume changes.
+- [ ] Foreground notification is visible.
+- [ ] Logs are appearing correctly in Logcat.
 
 ---
 
 ## 🆘 Troubleshooting
 
-### Build Fails
-```
-❌ ERROR: Unsupported class-file format
-✅ Solution: Update Java version to 11+
-```
+### Build Failures
+*   **Error:** `Unsupported class-file format`
+*   **Solution:** Update your Java version to **JDK 17** or higher.
 
-### MediaPipe Won't Load
-```
-❌ ERROR: Library libmediapipe not found
-✅ Solution: Download MediaPipe AAR manually
-   Or use older version (0.9.x)
-```
+### MediaPipe Loading Issues
+*   **Error:** `Library libmediapipe not found`
+*   **Solution:** Ensure you have an active internet connection to download the AAR, or manually verify the MediaPipe version in `build.gradle`.
 
-### App Crashes on Start
-```
-❌ CRASH: SecurityException - Camera permission
-✅ Solution: Request runtime permissions
-   Or allow in Settings
-```
+### App Crashes on Startup
+*   **Error:** `SecurityException - Camera permission`
+*   **Solution:** Manually enable Camera permissions in the device settings as described in Step 7.
 
-### Hand Not Detected
-```
-❌ Hand detection confidence too low
-✅ Solution: 
-   - Better lighting
-   - Move hand closer to camera
-   - Check front camera works
-```
-
-### Logcat Spam
-```
-❌ Too many logs, can't see useful info
-✅ Solution: Filter by tag
-   adb logcat | grep "HandGestureService"
-```
+### Detection Issues
+*   **Issue:** Hand not detected or low confidence.
+*   **Solution:** 
+    *   Improve lighting conditions.
+    *   Ensure the hand is within 0.5m – 1.5m of the camera.
+    *   Clean the front camera lens.
 
 ---
 
-**שלמת! 🎉 האפליקציה פועלת!**
+**Setup Complete! 🎉 Your VoluMotion environment is now ready.**
