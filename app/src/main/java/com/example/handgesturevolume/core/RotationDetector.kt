@@ -11,7 +11,7 @@ import kotlin.math.*
 class RotationDetector {
     private var previousFingerPositions: Map<String, PointF>? = null
     private var rotationBuffer: MutableList<RotationEvent> = mutableListOf()
-    private val bufferSize = 10 // גודל חלון לחישוב ממוצע
+    private val bufferSize = 12 // גודל חלון לחישוב ממוצע
 
     data class RotationEvent(
         val direction: RotationDirection,
@@ -66,11 +66,13 @@ class RotationDetector {
         val clockwiseCount = validEvents.count { it.direction == RotationDirection.CLOCKWISE }
         val counterClockwiseCount = validEvents.count { it.direction == RotationDirection.COUNTER_CLOCKWISE }
 
+        val need = (validEvents.size * MAJORITY_FRACTION).toInt().coerceAtLeast(4)
+
         return when {
-            clockwiseCount > counterClockwiseCount && clockwiseCount > validEvents.size / 2 -> {
+            clockwiseCount > counterClockwiseCount && clockwiseCount >= need -> {
                 validEvents.filter { it.direction == RotationDirection.CLOCKWISE }.maxByOrNull { it.confidence }
             }
-            counterClockwiseCount > clockwiseCount && counterClockwiseCount > validEvents.size / 2 -> {
+            counterClockwiseCount > clockwiseCount && counterClockwiseCount >= need -> {
                 validEvents.filter { it.direction == RotationDirection.COUNTER_CLOCKWISE }.maxByOrNull { it.confidence }
             }
             else -> null
@@ -124,8 +126,8 @@ class RotationDetector {
             0f
         }
 
-        // קבע כיוון וביטחון
-        val threshold = 2f // מינימום של 2 מעלות לזיהוי סיבוב
+        // סף זווית גבוה יותר — פחות רגישות לרעידות מצלמה / רקע
+        val threshold = MIN_ANGLE_DEGREES
 
         return when {
             averageDiff > threshold -> {
@@ -181,5 +183,10 @@ class RotationDetector {
     fun reset() {
         previousFingerPositions = null
         rotationBuffer.clear()
+    }
+
+    companion object {
+        private const val MIN_ANGLE_DEGREES = 7f
+        private const val MAJORITY_FRACTION = 0.68f
     }
 }

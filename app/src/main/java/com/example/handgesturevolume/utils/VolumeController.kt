@@ -26,7 +26,7 @@ class VolumeController(private val context: Context) {
         val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
-        val step = (max * 0.2f).toInt().coerceAtLeast(1)
+        val step = (max * VOLUME_STEP_FRACTION).toInt().coerceAtLeast(1)
         val newVolume = (current + step).coerceAtMost(max)
 
         audioManager.setStreamVolume(
@@ -45,7 +45,7 @@ class VolumeController(private val context: Context) {
         val current = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
         val max = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
 
-        val step = (max * 0.2f).toInt().coerceAtLeast(1)
+        val step = (max * VOLUME_STEP_FRACTION).toInt().coerceAtLeast(1)
         val newVolume = (current - step).coerceAtLeast(0)
 
         audioManager.setStreamVolume(
@@ -70,6 +70,10 @@ class VolumeController(private val context: Context) {
         )
 
         Log.d("VolumeController", "Mute toggled: $isMuted")
+    }
+
+    companion object {
+        private const val VOLUME_STEP_FRACTION = 0.2f
     }
 
     /**

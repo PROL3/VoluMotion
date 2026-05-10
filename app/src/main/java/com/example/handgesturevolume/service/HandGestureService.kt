@@ -33,9 +33,11 @@ class HandGestureService : LifecycleService() {
 
     private var isServiceRunning = false
     private var isServicePaused = false
+    /** השהיה בגלל זיהוי עצירה (לא כפתור השהה) */
+    private var pausedForStationary = false
     private var isDetectorReady = false
     private var lastRotationTime = 0L
-    private val rotationCooldown = 500L
+    private val rotationCooldown = 900L
 
     override fun onCreate() {
         super.onCreate()
@@ -49,12 +51,15 @@ class HandGestureService : LifecycleService() {
         // מאזין למצב נהיגה - שולט על הפעלה/כיבוי של המצלמה
         drivingModeDetector.addListener(object : DrivingModeDetector.DrivingModeListener {
             override fun onDrivingModeChanged(isDriving: Boolean) {
-                if (isDriving && isServicePaused) {
-                    resumeService()
+                if (isDriving && isServicePaused && pausedForStationary) {
+                    pausedForStationary = false
+                    resumeService(fromUser = false)
                 } else if (!isDriving && !isServicePaused) {
-                    pauseService()
+                    pausedForStationary = true
+                    pauseService(fromUser = false)
                 }
                 updateNotification(isDriving)
+                broadcastUiState()
             }
         })
     }
@@ -74,25 +79,30 @@ class HandGestureService : LifecycleService() {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
-            ACTION_PAUSE -> pauseService()
-            ACTION_RESUME -> resumeService()
+            ACTION_PAUSE -> pauseService(fromUser = true)
+            ACTION_RESUME -> resumeService(fromUser = true)
         }
+        broadcastUiState()
         return START_STICKY
     }
 
-    private fun pauseService() {
+    private fun pauseService(fromUser: Boolean = false) {
         if (!isServicePaused) {
             isServicePaused = true
+            if (fromUser) pausedForStationary = false
             releaseCameraOnly()
             showToast("ניטור הושהה")
+            broadcastUiState()
         }
     }
 
-    private fun resumeService() {
+    private fun resumeService(fromUser: Boolean = false) {
         if (isServicePaused) {
             isServicePaused = false
+            if (fromUser) pausedForStationary = false
             startHandDetection() // הפעלה מחדש של המצלמה והאנלייזר
             showToast("ניטור חזר לפעולה")
+            broadcastUiState()
         }
     }
 
@@ -142,6 +152,7 @@ class HandGestureService : LifecycleService() {
         if (PermissionManager.hasPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
             drivingModeDetector.startMonitoring()
         }
+        broadcastUiState()
     }
 
     /**
@@ -158,6 +169,7 @@ class HandGestureService : LifecycleService() {
 
     private fun stopHandDetection() {
         isServiceRunning = false
+        pausedForStationary = false
         drivingModeDetector.stopMonitoring()
         releaseCameraOnly()
         if (isDetectorReady) {
@@ -165,6 +177,7 @@ class HandGestureService : LifecycleService() {
             isDetectorReady = false
         }
         cameraExecutor.shutdown()
+        broadcastUiState()
     }
 
     private fun processImage(imageProxy: ImageProxy) {
@@ -174,10 +187,10 @@ class HandGestureService : LifecycleService() {
                 val handLandmarks = handDetector.detectHand(bitmap, imageProxy.imageInfo.timestamp)
 
                 if (handLandmarks != null && handLandmarks.confidence > 0.5f) {
-                    val rotation = rotationDetector.detectRotation(handLandmarks.landmarks, handLandmarks.confidence)
+                    rotationDetector.detectRotation(handLandmarks.landmarks, handLandmarks.confidence)
                     val averageRotation = rotationDetector.getAverageRotation()
 
-                    if (averageRotation != null && averageRotation.confidence > 0.6f) {
+                    if (averageRotation != null && averageRotation.confidence > 0.72f) {
                         val currentTime = System.currentTimeMillis()
                         if (currentTime - lastRotationTime > rotationCooldown) {
                             handleRotationAction(averageRotation.direction)
@@ -268,6 +281,18 @@ class HandGestureService : LifecycleService() {
         }
     }
 
+    private fun broadcastUiState() {
+        sendBroadcast(
+            Intent(ACTION_UI_STATE).apply {
+                setPackage(packageName)
+                putExtra(EXTRA_SERVICE_PAUSED, isServicePaused)
+                putExtra(EXTRA_SERVICE_RUNNING, isServiceRunning)
+                putExtra(EXTRA_DRIVING_MODE, drivingModeDetector.isDrivingMode())
+                putExtra(EXTRA_PAUSED_FOR_STATIONARY, pausedForStationary)
+            }
+        )
+    }
+
     companion object {
         const val CHANNEL_ID = "hand_gesture_channel"
         const val NOTIFICATION_ID = 1
@@ -275,5 +300,11 @@ class HandGestureService : LifecycleService() {
         const val ACTION_STOP = "com.example.handgesturevolume.STOP"
         const val ACTION_PAUSE = "com.example.handgesturevolume.PAUSE"
         const val ACTION_RESUME = "com.example.handgesturevolume.RESUME"
+
+        const val ACTION_UI_STATE = "com.example.handgesturevolume.UI_STATE"
+        const val EXTRA_SERVICE_PAUSED = "extra_service_paused"
+        const val EXTRA_SERVICE_RUNNING = "extra_service_running"
+        const val EXTRA_DRIVING_MODE = "extra_driving_mode"
+        const val EXTRA_PAUSED_FOR_STATIONARY = "extra_paused_for_stationary"
     }
 }

@@ -1,10 +1,15 @@
 package com.example.handgesturevolume.ui
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.widget.CompoundButton
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.appcompat.widget.SwitchCompat
 import android.widget.Button
 import android.widget.TextView
@@ -22,6 +27,34 @@ class MainActivity : AppCompatActivity() {
     private lateinit var pauseButton: Button
     private var isServiceRunning = false
     private var isPaused = false
+    private var isDrivingMode = false
+    private var pausedForStationary = false
+
+    private val toggleListener = CompoundButton.OnCheckedChangeListener { _, isChecked ->
+        if (isChecked) {
+            if (!PermissionManager.hasAllPermissions(this)) {
+                Toast.makeText(this, "אנא אשר את כל ההרשאות", Toast.LENGTH_SHORT).show()
+                toggleSwitch.isChecked = false
+                return@OnCheckedChangeListener
+            }
+            startGestureService()
+        } else {
+            stopGestureService()
+        }
+    }
+
+    private val uiStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action != HandGestureService.ACTION_UI_STATE) return
+            isPaused = intent.getBooleanExtra(HandGestureService.EXTRA_SERVICE_PAUSED, isPaused)
+            isServiceRunning = intent.getBooleanExtra(HandGestureService.EXTRA_SERVICE_RUNNING, isServiceRunning)
+            isDrivingMode = intent.getBooleanExtra(HandGestureService.EXTRA_DRIVING_MODE, isDrivingMode)
+            pausedForStationary =
+                intent.getBooleanExtra(HandGestureService.EXTRA_PAUSED_FOR_STATIONARY, pausedForStationary)
+            setToggleSilently(isServiceRunning)
+            updateStatus()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,24 +69,27 @@ class MainActivity : AppCompatActivity() {
         setupUI()
     }
 
+    override fun onStart() {
+        super.onStart()
+        ContextCompat.registerReceiver(
+            this,
+            uiStateReceiver,
+            IntentFilter(HandGestureService.ACTION_UI_STATE),
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(uiStateReceiver)
+    }
+
     private fun setupUI() {
         toggleSwitch = findViewById(R.id.toggleSwitch)
         statusText = findViewById(R.id.statusText)
         pauseButton = findViewById(R.id.pauseButton)
 
-        // מטפל לטוגל ההפעלה
-        toggleSwitch.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                if (!PermissionManager.hasAllPermissions(this)) {
-                    Toast.makeText(this, "אנא אשר את כל ההרשאות", Toast.LENGTH_SHORT).show()
-                    toggleSwitch.isChecked = false
-                    return@setOnCheckedChangeListener
-                }
-                startGestureService()
-            } else {
-                stopGestureService()
-            }
-        }
+        toggleSwitch.setOnCheckedChangeListener(toggleListener)
 
         // מטפל ל-Pause/Resume
         pauseButton.setOnClickListener {
@@ -63,6 +99,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateStatus()
+    }
+
+    private fun setToggleSilently(checked: Boolean) {
+        toggleSwitch.setOnCheckedChangeListener(null)
+        toggleSwitch.isChecked = checked
+        toggleSwitch.setOnCheckedChangeListener(toggleListener)
     }
 
     /**
@@ -136,8 +178,12 @@ class MainActivity : AppCompatActivity() {
     private fun updateStatus() {
         val status = when {
             !isServiceRunning -> "כבוי"
-            isPaused -> "הושהה"
-            else -> "פעיל"
+            isPaused -> {
+                if (pausedForStationary) "מושהה (עצירה / רמזור)" else "מושהה (ידני)"
+            }
+            else -> {
+                if (isDrivingMode) "פעיל — נהיגה" else "פעיל"
+            }
         }
 
         statusText.text = "סטטוס: $status"
